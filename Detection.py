@@ -10,8 +10,8 @@ import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from DB.db import get_visual_logs, clear_visual_logs, persons_col, visuals_col, save_person
 from DB.db import ensure_files_and_db, load_db, save_db, log_attendance, log_visual_appearance,delete_all
-from utils import Track, predict_age_gender,compute_cosine_sim
-
+from utils import predict_age_gender,compute_cosine_sim
+from utils import Track
 
 # -------------------------- Core Config --------------------------
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -19,7 +19,7 @@ VIDEO_SRC = 0
 DETECTION_EVERY_N_FRAMES = 10
 MIN_SECONDS_TO_SAVE = 10
 SIMILARITY_THRESHOLD = 0.7
-TRACKER_MAX_DISAPPEAR = 10
+TRACKER_MAX_DISAPPEAR = 1
 OUTPUT_WINDOW_NAME = "Face Attendance (OpenCV) - press 'q' or Stop in UI"
 # -------------------------- Visual --------------------------
 BOX_COLOR = (0, 255, 0)
@@ -364,6 +364,3 @@ class FaceAttendanceSystem:
         cv2.putText(annotated, f"Total Saved Persons: {db_count}", (10, 25), FONT, 0.7, (0, 255, 255), 2)
 
         return annotated, events
-
-
-

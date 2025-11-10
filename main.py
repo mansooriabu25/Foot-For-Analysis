@@ -1,34 +1,41 @@
 import os
-import time
-import pickle
 import threading
 from collections import OrderedDict, deque
-from datetime import datetime, timedelta
-import cv2
-import numpy as np
 import pandas as pd
-from PIL import Image
 import streamlit as st
 import torch
-from facenet_pytorch import MTCNN, InceptionResnetV1
+from pymongo import MongoClient
+from dotenv import load_dotenv
 from Visuals.LineChart import LineChart
 from Visuals.BarChart import BarChart
 from Visuals.PieChart import PieChart
-from DB.db import get_visual_logs, clear_visual_logs, persons_col, visuals_col, save_person
-from DB.db import ensure_files_and_db, load_db, save_db, log_attendance, log_visual_appearance,delete_all
-from Detection_Cam import FaceAttendanceSystem
+from DB.db import ensure_files_and_db,delete_all,clear_visual_logs
+from Detection import FaceAttendanceSystem
 from Cam import  camera_thread_fn
-
-
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-
 
 # -------------------------- Streamlit UI --------------------------
 st.set_page_config(page_title="Face Recognition ", layout="wide")
-st.title("Foot-For-Analysis  — MTCNN + FaceNet (OpenCV window)")
-
+st.title("Footfall-Analysis  — MTCNN + FaceNet (OpenCV window)")
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 ensure_files_and_db()
+
+# Load environment variables
+load_dotenv()
+MONGO_URI = os.getenv("MONGO_URI")
+DB_NAME = os.getenv("DB_NAME")
+
+# Function to get MongoDB data from a specific collection
+def get_mongo_data(collection_name):
+    if not MONGO_URI or not DB_NAME:
+        st.error("❌ MongoDB configuration missing. Check your .env file.")
+        return []
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client[DB_NAME]
+        return list(db[collection_name].find({}))
+    except Exception as e:
+        st.error(f"❌ Error connecting to MongoDB: {e}")
+        return []
 
 if "engine" not in st.session_state:
     st.session_state.engine = None
@@ -39,7 +46,7 @@ if "stop_event" not in st.session_state:
 if "running" not in st.session_state:
     st.session_state.running = False
 
-tabs = st.tabs(["Home","Visuals Dashboard"])
+tabs = st.tabs(["Home","Persons","Records","Visuals Dashboard"])
 
 with tabs[0]:
     st.header("Home — Camera control (OpenCV window)")
@@ -82,6 +89,41 @@ with tabs[0]:
     """)
 
 with tabs[1]:
+    st.header("👤 Person Data")
+    # Fetch data
+    persons_data = get_mongo_data("persons")
+    
+    if persons_data:
+        df_persons = pd.DataFrame(persons_data)
+        # Drop MongoDB's _id if present (optional, for cleaner display)
+        if "_id" in df_persons.columns:
+            df_persons = df_persons.drop(columns=["_id"])
+        st.dataframe(df_persons)  
+    else:
+        st.info("No data found in the 'persons' collection.")
+    # st.markdown("---")
+    # st.subheader("🗑️ Delete Person")
+    # del_pid = st.selectbox("Choose person to delete", options=df_persons['person_id'], key="del_select")
+    # if st.button("Delete selected person"):
+    #     delete_all()
+    #     st.success(f"Deleted {del_pid}")
+    #     db = load_db()
+
+with tabs[2]:
+    st.header("📊 Records Data")
+    # Fetch data
+    records_data = get_mongo_data("records")
+    
+    if records_data:
+        df_records = pd.DataFrame(records_data)
+        # Drop MongoDB's _id if present (optional, for cleaner display)
+        if "_id" in df_records.columns:
+            df_records = df_records.drop(columns=["_id"])
+        st.dataframe(df_records)  
+    else:
+        st.info("No data found in the 'records' collection.")
+
+with tabs[3]:
 
     st.title("📊 Visuals - Visitor Time Pattern")
     LineChart()
@@ -91,8 +133,9 @@ with tabs[1]:
     if st.button("📊 Clear Visual Logs"):
         clear_visual_logs()
         st.success("Visual logs cleared successfully.")
-    if st.button("🗑️ Delete All"):
+    if st.button("🗑️ Delete All Records"):
         delete_all()
         st.success("Deleted Successfully")
+
 st.markdown("---")
-st.caption("Pipeline: MTCNN (detection) → FaceNet/InceptionResnetV1 (512-d embeddings) → centroid tracking → 1-minute save → daily attendance log.")
+st.caption("Pipeline: MTCNN (detection) → FaceNet/InceptionResnetV1 (512-d embeddings) → centroid tracking → 10 Sec save → daily attendance log.")

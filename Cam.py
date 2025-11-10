@@ -1,13 +1,14 @@
 import pandas as pd
 import cv2
+import time
 import threading
-from Detection_Cam import FaceAttendanceSystem
+
 
 VIDEO_SRC = 0
 OUTPUT_WINDOW_NAME = "Face Attendance (OpenCV) - press 'q' or Stop in UI"
 
 # -------------------------- Camera thread --------------------------
-def camera_thread_fn(engine: FaceAttendanceSystem, stop_event: threading.Event):
+def camera_thread_fn(engine , stop_event: threading.Event):
     cap = cv2.VideoCapture(VIDEO_SRC)
     try:
         cap.set(cv2.CAP_PROP_FPS, 60)

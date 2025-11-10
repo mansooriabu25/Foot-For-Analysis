@@ -143,14 +143,6 @@ def match_embedding(embedding, threshold=0.65):
         return docs[best_idx]["person_id"], best_sim
     return None, best_sim
 
-
-# def delete_person_everywhere(person_id):
-#     """Delete a person from all collections."""
-#     persons_col.delete_one({"person_id": person_id})
-#     attendance_col.delete_many({"person_id": person_id})
-#     visuals_col.delete_many({"identifier": person_id})
-
-
 # -------------------------------------------------------------------
 # 👁️ Visual Logs
 # -------------------------------------------------------------------
@@ -203,20 +195,20 @@ def delete_all():
     persons_col.delete_many({})
     attendance_col.delete_many({})
 
-def get_visual_dataframe():
-    """Return visuals collection as pandas DataFrame."""
-    docs = list(visuals_col.find({}))
-    if not docs:
-        return pd.DataFrame(columns=["identifier", "timestamp", "gender", "age", "datetime_str"])
+# def get_visual_dataframe():
+#     """Return visuals collection as pandas DataFrame."""
+#     docs = list(visuals_col.find({}))
+#     if not docs:
+#         return pd.DataFrame(columns=["identifier", "timestamp", "gender", "age", "datetime_str"])
 
-    # Flatten meta fields (like gender, age)
-    for d in docs:
-        meta = d.get("meta", {})
-        d["gender"] = meta.get("gender", "")
-        d["age"] = meta.get("age", None)
-        d.pop("_id", None)
+#     # Flatten meta fields (like gender, age)
+#     for d in docs:
+#         meta = d.get("meta", {})
+#         d["gender"] = meta.get("gender", "")
+#         d["age"] = meta.get("age", None)
+#         d.pop("_id", None)
 
-    df = pd.DataFrame(docs)
-    if "timestamp" in df.columns:
-        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    return df
+#     df = pd.DataFrame(docs)
+#     if "timestamp" in df.columns:
+#         df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+#     return df
